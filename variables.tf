@@ -22,3 +22,9 @@ variable "grafana_admin_password" {
   description = "The Grafana admin password"
   sensitive   = true
 }
+
+variable "grafana_datasource_name" {
+  description = "Name of the Prometheus datasource in Grafana"
+  type        = string
+  default     = "Prometheus"
+}

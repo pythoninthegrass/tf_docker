@@ -1,4 +1,8 @@
 # ETC
+grafana-config.ini
+dashboard.yml
+node-exporter.json
+prometheus.yml
 tfplan
 .terraform.lock.hcl
 

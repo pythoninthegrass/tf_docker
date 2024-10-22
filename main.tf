@@ -13,15 +13,29 @@ resource "docker_container" "prometheus" {
   }
 
   volumes {
-    host_path      = "${path.module}/prometheus.yml"
+    host_path      = abspath("${path.module}/config/prometheus.yml")
     container_path = "/etc/prometheus/prometheus.yml"
+    read_only      = true
   }
 
-  command = ["--config.file=/etc/prometheus/prometheus.yml"]
+  command = [
+    "--config.file=/etc/prometheus/prometheus.yml",
+    "--storage.tsdb.path=/prometheus",
+    "--web.console.libraries=/etc/prometheus/console_libraries",
+    "--web.console.templates=/etc/prometheus/consoles",
+    "--web.enable-lifecycle"
+  ]
 
   networks_advanced {
     name = docker_network.promgraf_network.name
   }
+
+  depends_on = [
+    docker_volume.prometheus_data,
+    local_file.prometheus_config
+  ]
+
+  destroy_grace_seconds = 10
 }
 
 resource "docker_container" "grafana" {
@@ -44,15 +58,42 @@ resource "docker_container" "grafana" {
   }
 
   volumes {
-    host_path      = "${path.module}/grafana-config.ini"
+    host_path      = abspath("${path.module}/config/grafana-config.ini")
     container_path = "/etc/grafana/config.ini"
+    read_only      = true
+  }
+
+  volumes {
+    host_path      = abspath("${path.module}/config/grafana/dashboards")
+    container_path = "/etc/grafana/provisioning/dashboards"
+    read_only      = true
+  }
+
+  volumes {
+    host_path      = abspath("${path.module}/config/grafana/provisioning/datasources")
+    container_path = "/etc/grafana/provisioning/datasources"
+    read_only      = true
   }
 
   networks_advanced {
     name = docker_network.promgraf_network.name
   }
 
-  depends_on = [docker_container.prometheus]
+  depends_on = [
+    docker_volume.grafana_data,
+    docker_container.prometheus,
+    local_file.grafana_config,
+    local_file.dashboard_config,
+    local_file.node_exporter_dashboard,
+    local_file.grafana_datasource
+  ]
+
+  destroy_grace_seconds = 10
+}
+
+resource "local_file" "grafana_datasource" {
+  content  = templatefile("${path.module}/config/grafana/provisioning/datasources/prometheus.yml.tpl", {})
+  filename = "${path.module}/config/grafana/provisioning/datasources/prometheus.yml"
 }
 
 resource "docker_container" "node_exporter" {
@@ -70,18 +111,49 @@ resource "docker_container" "node_exporter" {
 }
 
 resource "local_file" "prometheus_config" {
-  content = templatefile("${path.module}/prometheus.yml.tpl", {
+  content = templatefile("${path.module}/config/prometheus.yml.tpl", {
     prometheus_port    = var.prometheus_port
     node_exporter_port = var.node_exporter_port
   })
-  filename = "${path.module}/prometheus.yml"
+  filename = "${path.module}/config/prometheus.yml"
 }
 
 resource "local_file" "grafana_config" {
-  content = templatefile("${path.module}/grafana-config.ini.tpl", {
-    grafana_port          = var.grafana_port
-    grafana_admin_user    = var.grafana_admin_user
+  content = templatefile("${path.module}/config/grafana-config.ini.tpl", {
+    grafana_port           = var.grafana_port
+    grafana_admin_user     = var.grafana_admin_user
     grafana_admin_password = var.grafana_admin_password
   })
-  filename = "${path.module}/grafana-config.ini"
+  filename = "${path.module}/config/grafana-config.ini"
+}
+
+resource "local_file" "dashboard_config" {
+  content  = templatefile("${path.module}/config/grafana/dashboards/dashboard.yml.tpl", {})
+  filename = "${path.module}/config/grafana/dashboards/dashboard.yml"
+}
+
+resource "local_file" "node_exporter_dashboard" {
+  content = templatefile("${path.module}/config/grafana/dashboards/node-exporter.json.tpl", {
+    node_exporter_port = var.node_exporter_port
+    datasource         = var.grafana_datasource_name
+  })
+  filename = "${path.module}/config/grafana/dashboards/node-exporter.json"
+}
+
+resource "null_resource" "wait_for_containers" {
+  count = length([
+    docker_container.prometheus.id,
+    docker_container.grafana.id,
+    docker_container.node_exporter.id
+  ])
+
+  depends_on = [
+    docker_container.prometheus,
+    docker_container.grafana,
+    docker_container.node_exporter
+  ]
+
+  provisioner "local-exec" {
+    command = "sleep 10"
+  }
 }
