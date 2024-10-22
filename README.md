@@ -34,6 +34,16 @@ To run TFLint use the command `make test_tflint`.
 
 It is possible to automatically apply some fixes, but these should be reviewed before running. If you are comfortable with all of the results from `make test_tflint` being fixed automatically then run `make fix_tflint`.
 
+## TODO
+
+* Add [restart: unless-stopped](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs/resources/container#restart) to all containers
+* Use [remote hosts](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs#remote-hosts) specifically for exporters
+  * node-exporter
+  * nodejs
+  * mongodb
+  * elasticsearch
+  * redis
+
 ## Further Reading
 
 * [Docs overview | kreuzwerker/docker | Terraform | Terraform Registry](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs) 
