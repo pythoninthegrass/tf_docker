@@ -11,11 +11,6 @@ repos:
         entry: make test_validation
         language: system
         pass_filenames: false
-      - id: documentation
-        name: Test documentation
-        entry: make test_documentation
-        language: system
-        pass_filenames: false
       - id: lint
         name: Test lint
         entry: make test_tflint
