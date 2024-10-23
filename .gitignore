@@ -2,6 +2,7 @@
 grafana-config.ini
 dashboard.yml
 node-exporter.json
+playbooks/*
 prometheus.yml
 tfplan
 .terraform.lock.hcl
@@ -68,3 +69,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# INCLUDE
+!**/*.example
+!**/.gitkeep

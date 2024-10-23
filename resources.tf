@@ -21,6 +21,7 @@ resource "docker_image" "grafana" {
 }
 
 resource "docker_image" "node_exporter" {
-  name = "prom/node-exporter:latest"
+  name         = "prom/node-exporter:latest"
+  keep_locally = true
 }
 
