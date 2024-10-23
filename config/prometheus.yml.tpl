@@ -6,6 +6,11 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:${prometheus_port}']
 
-  - job_name: 'node-exporter'
+  - job_name: 'node'
     static_configs:
-      - targets: ['node-exporter:${node_exporter_port}']
+      - targets: [
+          'node-exporter:${node_exporter_port}',  # Local container using Docker network DNS
+          %{ for host in node_exporter_hosts ~}
+          '${host.ip}:${node_exporter_port}',     # Remote hosts using IP addresses
+          %{ endfor ~}
+        ]
