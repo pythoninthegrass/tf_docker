@@ -13,6 +13,16 @@ variable "node_exporter_port" {
   default     = 9100
 }
 
+variable "node_exporter_hosts" {
+  description = "List of hosts for node-exporter deployment"
+  type = list(object({
+    name     = string
+    ip       = string
+    ssh_user = string
+    ssh_port = number
+  }))
+}
+
 variable "grafana_admin_user" {
   description = "The Grafana admin username"
   default     = "admin"

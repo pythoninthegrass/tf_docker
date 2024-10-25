@@ -30,12 +30,14 @@ resource "docker_container" "prometheus" {
     name = docker_network.promgraf_network.name
   }
 
+  restart = "unless-stopped"
+
+  destroy_grace_seconds = 10
+
   depends_on = [
     docker_volume.prometheus_data,
     local_file.prometheus_config
   ]
-
-  destroy_grace_seconds = 10
 }
 
 resource "docker_container" "grafana" {
@@ -78,6 +80,9 @@ resource "docker_container" "grafana" {
   networks_advanced {
     name = docker_network.promgraf_network.name
   }
+  restart = "unless-stopped"
+
+  destroy_grace_seconds = 10
 
   depends_on = [
     docker_volume.grafana_data,
@@ -87,8 +92,6 @@ resource "docker_container" "grafana" {
     local_file.node_exporter_dashboard,
     local_file.grafana_datasource
   ]
-
-  destroy_grace_seconds = 10
 }
 
 resource "local_file" "grafana_datasource" {
@@ -108,12 +111,17 @@ resource "docker_container" "node_exporter" {
   networks_advanced {
     name = docker_network.promgraf_network.name
   }
+
+  restart = "unless-stopped"
+
+  destroy_grace_seconds = 10
 }
 
 resource "local_file" "prometheus_config" {
   content = templatefile("${path.module}/config/prometheus.yml.tpl", {
-    prometheus_port    = var.prometheus_port
-    node_exporter_port = var.node_exporter_port
+    prometheus_port     = var.prometheus_port
+    node_exporter_port  = var.node_exporter_port
+    node_exporter_hosts = var.node_exporter_hosts
   })
   filename = "${path.module}/config/prometheus.yml"
 }
@@ -141,16 +149,22 @@ resource "local_file" "node_exporter_dashboard" {
 }
 
 resource "null_resource" "wait_for_containers" {
-  count = length([
-    docker_container.prometheus.id,
-    docker_container.grafana.id,
-    docker_container.node_exporter.id
-  ])
+  count = 1
 
   depends_on = [
     docker_container.prometheus,
     docker_container.grafana,
     docker_container.node_exporter
+  ]
+
+  provisioner "local-exec" {
+    command = "sleep 10"
+  }
+}
+
+resource "null_resource" "wait_for_remote_containers" {
+  depends_on = [
+    null_resource.run_ansible
   ]
 
   provisioner "local-exec" {
