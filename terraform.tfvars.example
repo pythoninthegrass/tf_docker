@@ -1,5 +1,14 @@
-prometheus_port = 9090
-grafana_port = 3000
-node_exporter_port = 9100
-grafana_admin_user = "admin"
-grafana_admin_password = "your_secure_password_here"
+prometheus_port        = 9090
+grafana_port           = 3000
+node_exporter_port     = 9100
+grafana_admin_user     = "admin"
+grafana_admin_password = "supersecurepassword"
+node_exporter_hosts = [
+  {
+    name     = "fedora"
+    ip       = "192.168.86.250"
+    ssh_user = "admin"
+    ssh_port = 22
+  }
+]
+ssh_private_key_path = "~/.ssh/id_rsa"

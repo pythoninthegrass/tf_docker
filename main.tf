@@ -162,12 +162,24 @@ resource "null_resource" "wait_for_containers" {
   }
 }
 
-resource "null_resource" "wait_for_remote_containers" {
-  depends_on = [
-    null_resource.run_ansible
-  ]
+resource "local_file" "ansible_inventory" {
+  content = templatefile("${path.module}/hosts.tpl", {
+    node_exporter_hosts  = var.node_exporter_hosts
+    node_exporter_port   = var.node_exporter_port
+    ssh_private_key_path = pathexpand(var.ssh_private_key_path)
+  })
+  filename = "${path.module}/hosts"
+}
+
+resource "null_resource" "ansible_playbook" {
+  depends_on = [local_file.ansible_inventory]
+
+  triggers = {
+    inventory_content = local_file.ansible_inventory.content
+    playbook_hash     = filemd5("${path.module}/node_exporter.yml")
+  }
 
   provisioner "local-exec" {
-    command = "sleep 10"
+    command = "ansible-playbook -i ${local_file.ansible_inventory.filename} node_exporter.yml"
   }
 }
