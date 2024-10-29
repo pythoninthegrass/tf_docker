@@ -1,0 +1,71 @@
+services:
+  nodejs:
+    image: node:23.1.0-bookworm
+    working_dir: /app
+    command: ["node"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app:/app
+    depends_on:
+      - mongodb
+      - elasticsearch
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  mongodb:
+    image: mongo:8.0.3-noble
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  elasticsearch:
+    image: elasticsearch:8.15.3
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  redis:
+    image: redis:7.4.1-bookworm
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  mongodb_data:
+  elasticsearch_data:
+  redis_data:

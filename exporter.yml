@@ -1,0 +1,46 @@
+---
+- name: Deploy exporters as containers
+  hosts: all
+  gather_facts: false
+  vars:
+    exporter_defaults:
+      node:
+        image: "prom/node-exporter:latest"
+        port: 9100
+      mongodb:
+        image: "bitnami/mongodb-exporter:latest"
+        port: 9216
+      redis:
+        image: "oliver006/redis_exporter:latest"
+        port: 9121
+
+  tasks:
+    - name: Set exporter type based on inventory group
+      ansible.builtin.set_fact:
+        exporter_type: >-
+          {%- if inventory_hostname in groups.get('node_exporters', []) -%}
+            node
+          {%- elif inventory_hostname in groups.get('mongodb_hosts', []) -%}
+            mongodb
+          {%- elif inventory_hostname in groups.get('redis_hosts', []) -%}
+            redis
+          {%- endif -%}
+
+    - name: Start exporter container
+      community.docker.docker_container:
+        name: "{{ exporter_type }}-exporter"
+        image: "{{ exporter_defaults[exporter_type].image }}"
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "{{ exporter_defaults[exporter_type].port }}:{{ exporter_defaults[exporter_type].port }}"
+        container_default_behavior: no_defaults
+        command: "{{ container_command | default(omit) }}"
+      vars:
+        container_command: >-
+          {%- if exporter_type == 'mongodb' -%}
+            --mongodb.uri=mongodb://localhost:{{ service_port }}/
+          {%- elif exporter_type == 'redis' -%}
+            --redis.addr=redis://localhost:{{ service_port }}/
+          {%- endif -%}
+      when: exporter_type is defined and exporter_type != ''

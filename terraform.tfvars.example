@@ -11,4 +11,30 @@ node_exporter_hosts = [
     ssh_port = 22
   }
 ]
+service_hosts = [
+  {
+    service  = "nodejs"
+    name     = "app1"
+    ip       = "192.168.86.250"
+    port     = 3000
+    ssh_user = "admin"
+    ssh_port = 22
+  },
+  {
+    service  = "mongodb"
+    name     = "mongo1"
+    ip       = "192.168.86.250"
+    port     = 27017
+    ssh_user = "admin"
+    ssh_port = 22
+  },
+  {
+    service  = "redis"
+    name     = "redis1"
+    ip       = "192.168.86.250"
+    port     = 6379
+    ssh_user = "admin"
+    ssh_port = 22
+  }
+]
 ssh_private_key_path = "~/.ssh/id_rsa"
