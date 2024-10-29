@@ -1,0 +1,59 @@
+version: "3.0"
+
+set: ['e', 'u', 'pipefail']
+shopt: ['globstar']
+
+env:
+
+tasks:
+  fmt:
+    desc: "Format Terraform files"
+    cmds:
+      - terraform fmt
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  _init:
+    internal: true
+    desc: "Internal task to initialize tflint"
+    cmds:
+      - tflint --init 2>&1 > /dev/null
+    run: once
+    silent: true
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  lint:
+    desc: "Lint Terraform files"
+    deps: ["_init"]
+    cmds:
+      - tflint
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  validate:
+    desc: "Validate Terraform configuration"
+    cmds:
+      - terraform validate
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  init:
+    desc: "Initialize Terraform"
+    cmds:
+      - terraform init
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  plan:
+    desc: "Plan Terraform configuration"
+    cmds:
+      - terraform plan -out tfplan
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  apply:
+    desc: "Apply Terraform configuration"
+    cmds:
+      - terraform apply -auto-approve
+    dir: "{{.ROOT_DIR}}/terraform"
+
+  destroy:
+    desc: "Destroy Terraform-managed infrastructure"
+    cmds:
+      - terraform destroy -auto-approve
+    dir: "{{.ROOT_DIR}}/terraform"
