@@ -1,0 +1,30 @@
+docker_networks:
+  - name: monitoring-net
+    driver: bridge
+
+exporters:
+  - name: node
+    image: "prom/node-exporter:latest"
+    port: 9100
+  - name: mongodb
+    image: "percona/mongodb_exporter:0.40"
+    port: 9216
+  - name: redis
+    image: "oliver006/redis_exporter:latest"
+    port: 9121
+  - name: elasticsearch
+    image: "quay.io/prometheuscommunity/elasticsearch-exporter:latest"
+    port: 9114
+  - name: kafka
+    image: "danielqsj/kafka-exporter:latest"
+    port: 9308
+
+service_ports:
+  - name: mongodb
+    port: 27017
+  - name: redis
+    port: 6379
+  - name: elasticsearch
+    port: 9200
+  - name: kafka
+    port: 9092

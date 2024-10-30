@@ -9,8 +9,8 @@ scrape_configs:
   - job_name: 'node'
     static_configs:
       - targets: [
-          'node-exporter:${node_exporter_port}',  # Local container using Docker network DNS
-          %{ for host in node_exporter_hosts ~}
-          '${host.ip}:${node_exporter_port}',     # Remote hosts using IP addresses
-          %{ endfor ~}
+          'node-exporter:${node_exporter_port}',
+          %{~ for host in node_exporter_hosts ~}
+          '${host.ip}:${node_exporter_port}',
+          %{~ endfor ~}
         ]

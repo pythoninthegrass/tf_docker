@@ -176,10 +176,10 @@ resource "null_resource" "ansible_playbook" {
 
   triggers = {
     inventory_content = local_file.ansible_inventory.content
-    playbook_hash     = filemd5("${path.module}/node_exporter.yml")
+    playbook_hash     = filemd5("${path.module}/${var.playbook}")
   }
 
   provisioner "local-exec" {
-    command = "ansible-playbook -i ${local_file.ansible_inventory.filename} node_exporter.yml"
+    command = "ansible-playbook -i ${local_file.ansible_inventory.filename} exporter.yml"
   }
 }

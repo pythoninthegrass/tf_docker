@@ -1,46 +1,104 @@
 ---
-- name: Deploy exporters as containers
+- name: Deploy monitoring exporters
   hosts: all
-  gather_facts: false
-  vars:
-    exporter_defaults:
-      node:
-        image: "prom/node-exporter:latest"
-        port: 9100
-      mongodb:
-        image: "bitnami/mongodb-exporter:latest"
-        port: 9216
-      redis:
-        image: "oliver006/redis_exporter:latest"
-        port: 9121
-
+  gather_facts: true
+  environment:
+    PATH: "{{ ansible_env.HOME }}/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+  vars_files:
+    - vars.yml
   tasks:
-    - name: Set exporter type based on inventory group
-      ansible.builtin.set_fact:
-        exporter_type: >-
-          {%- if inventory_hostname in groups.get('node_exporters', []) -%}
-            node
-          {%- elif inventory_hostname in groups.get('mongodb_hosts', []) -%}
-            mongodb
-          {%- elif inventory_hostname in groups.get('redis_hosts', []) -%}
-            redis
-          {%- endif -%}
+    - name: Create monitoring network
+      community.docker.docker_network:
+        name: "{{ item.name }}"
+        state: present
+        driver: "{{ item.driver }}"
+      loop: "{{ docker_networks }}"
+      delegate_to: "{{ groups['all'][0] }}"
 
-    - name: Start exporter container
+    - name: Pull exporter images
       community.docker.docker_container:
-        name: "{{ exporter_type }}-exporter"
-        image: "{{ exporter_defaults[exporter_type].image }}"
+        name: "{{ item.image }}"
+        pull: missing
+      loop: "{{ exporters }}"
+
+    - name: Deploy node-exporter
+      community.docker.docker_container:
+        name: "node-exporter"
+        image: "{{ exporters.node.image }}"
         state: started
         restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_networks[0].name }}"
         published_ports:
-          - "{{ exporter_defaults[exporter_type].port }}:{{ exporter_defaults[exporter_type].port }}"
-        container_default_behavior: no_defaults
-        command: "{{ container_command | default(omit) }}"
-      vars:
-        container_command: >-
-          {%- if exporter_type == 'mongodb' -%}
-            --mongodb.uri=mongodb://localhost:{{ service_port }}/
-          {%- elif exporter_type == 'redis' -%}
-            --redis.addr=redis://localhost:{{ service_port }}/
-          {%- endif -%}
-      when: exporter_type is defined and exporter_type != ''
+          - "{{ exporters.node.port }}:{{ exporters.node.port }}"
+        volumes:
+          - "/proc:/host/proc:ro"
+          - "/sys:/host/sys:ro"
+          - "/:/rootfs:ro"
+        command:
+          - "--path.procfs=/host/proc"
+          - "--path.sysfs=/host/sys"
+          - "--path.rootfs=/rootfs"
+          - "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)"
+      when: "'node' in exporters"
+
+    - name: Deploy mongodb exporter
+      community.docker.docker_container:
+        name: "mongodb-exporter-{{ item.name }}"
+        image: "{{ exporters.mongodb.image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_networks[0].name }}"
+        published_ports:
+          - "{{ exporters.mongodb.port }}:{{ exporters.mongodb.port }}"
+        command: "--mongodb.uri=mongodb://{{ item.ip }}:{{ item.port }}/"
+      when: "'mongodb' in active_exporters"
+      loop: "{{ service_hosts | selectattr('service', 'equalto', 'mongodb') | list }}"
+
+    - name: Deploy redis exporter
+      community.docker.docker_container:
+        name: "redis-exporter-{{ item.name }}"
+        image: "{{ exporters.redis.image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_networks[0].name }}"
+        published_ports:
+          - "{{ exporters.redis.port }}:{{ exporters.redis.port }}"
+        command: "--redis.addr=redis://{{ item.ip }}:{{ item.port }}"
+      when: "'redis' in active_exporters"
+      loop: "{{ service_hosts | selectattr('service', 'equalto', 'redis') | list }}"
+
+    - name: Deploy elasticsearch exporter
+      community.docker.docker_container:
+        name: "elasticsearch-exporter-{{ item.name }}"
+        image: "{{ exporters.elasticsearch.image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_networks[0].name }}"
+        published_ports:
+          - "{{ exporters.elasticsearch.port }}:{{ exporters.elasticsearch.port }}"
+        command: >-
+          --es.uri=http://{{ item.ip }}:{{ item.port }}
+          --es.all
+          --es.indices
+          --es.indices_settings
+          --es.cluster_settings
+      when: "'elasticsearch' in active_exporters"
+      loop: "{{ service_hosts | selectattr('service', 'equalto', 'elasticsearch') | list }}"
+
+    - name: Deploy kafka exporter
+      community.docker.docker_container:
+        name: "kafka-exporter-{{ item.name }}"
+        image: "{{ exporters.kafka.image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_networks[0].name }}"
+        published_ports:
+          - "{{ exporters.kafka.port }}:{{ exporters.kafka.port }}"
+        command: "--kafka.server={{ item.ip }}:{{ item.port }}"
+      when: "'kafka' in active_exporters"
+      loop: "{{ service_hosts | selectattr('service', 'equalto', 'kafka') | list }}"
