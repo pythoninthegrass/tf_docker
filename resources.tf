@@ -5,11 +5,29 @@ resource "docker_network" "promgraf_network" {
 resource "docker_volume" "prometheus_data" {
   name   = "prometheus-data"
   driver = "local"
+  driver_opts = {
+    type   = "none"
+    device = "${abspath(path.cwd)}/data/prometheus"
+    o      = "bind"
+  }
+
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 
 resource "docker_volume" "grafana_data" {
   name   = "grafana-data"
   driver = "local"
+  driver_opts = {
+    type   = "none"
+    device = "${abspath(path.cwd)}/data/grafana"
+    o      = "bind"
+  }
+
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 
 resource "docker_image" "prometheus" {

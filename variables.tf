@@ -39,6 +39,24 @@ variable "node_exporter_hosts" {
   }))
 }
 
+variable "service_hosts" {
+  description = "List of service hosts to monitor"
+  type = list(object({
+    service  = string
+    name     = string
+    ip       = string
+    port     = number
+    ssh_user = string
+    ssh_port = number
+  }))
+  default = []
+}
+
+variable "playbook" {
+  description = "The Ansible playbook to run"
+  type        = string
+}
+
 variable "ssh_private_key_path" {
   description = "Path to SSH private key for Ansible"
   type        = string

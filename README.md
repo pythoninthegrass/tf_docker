@@ -36,13 +36,18 @@ It is possible to automatically apply some fixes, but these should be reviewed b
 
 ## TODO
 
-* Add [restart: unless-stopped](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs/resources/container#restart) to all containers
-* Use [remote hosts](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs#remote-hosts) specifically for exporters
+* Use docker-compose specifically for exporters
   * node-exporter
   * nodejs
   * mongodb
   * elasticsearch
   * redis
+* Reinstate ansible terraform provider
+  * Takes care of inventory and remote state (e.g., `terraform destroy`)
+* Reorganize repo into top-level directories
+  * `ansible`
+  * `docker`
+  * `terraform`
 
 ## Further Reading
 
